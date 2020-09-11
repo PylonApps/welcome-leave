@@ -29,7 +29,7 @@ const joinLeaveImage = async (
       avatar.cropCircle();
       image.composite(avatar, image.width * 0.05, image.height / 8);
 
-      const text = Image.renderText(128, avgAvatarColor > 0x808080ff ? 0x000000ff : 0xffffffff, 'Roboto', \`\${tag} just ${
+      const text = Image.renderText(128, avgAvatarColor > 0xaaaaaaff ? 0x000000ff : 0xffffffff, 'Roboto', \`\${tag} just ${
         join ? 'joined!' : 'left.'
       }\`);
 
