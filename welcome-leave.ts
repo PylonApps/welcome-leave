@@ -29,13 +29,11 @@ const joinLeaveImage = async (
       avatar.cropCircle();
       image.composite(avatar, image.width * 0.05, image.height / 8);
 
-      const text = Image.renderText(128, avgAvatarColor > 0xaaaaaaff ? 0x000000ff : 0xffffffff, 'Roboto', \`\${tag} just ${
-        join ? 'joined!' : 'left.'
-      }\`);
+      const message = \`\${tag} just \${join ? 'joined' : 'left'}!\`;
+      const text = Image.renderText(1280 / message.length, avgAvatarColor > 0xaaaaaaff ? 0x000000ff : 0xffffffff, 'Roboto', message);
 
-      text.resize(image.width - image.width * 0.2 - image.height * 0.75, Image.RESIZE_AUTO);
       image.composite(text, image.width * 0.1 + image.height * 0.75, image.height / 2 - text.height / 2);
-      ${join ? '' : 'image.saturation(0.25);'}
+      if(!join) image.saturation(0.25);
     `;
 
   const request = await fetch('https://fapi.wrmsr.io/image_script', {
@@ -44,7 +42,8 @@ const joinLeaveImage = async (
         text: code,
         inject: {
           tag: member.user.getTag(),
-          avatarURL: member.user.getAvatarUrl()
+          avatarURL: member.user.getAvatarUrl(),
+          join
         }
       }
     }),
