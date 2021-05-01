@@ -1,17 +1,28 @@
+enum Type {
+  JOIN,
+  LEAVE
+}
+
 const joinLeaveImage = async (
-  join: boolean,
+  type: Type,
   member: discord.GuildMember | discord.Event.IGuildMemberRemove
 ) => {
   const channel = await discord.getGuildTextChannel(JOIN_LEAVE_CHANNEL);
   if (!channel) throw new Error('Invalid channel');
 
   const code = `
-      const avatar = Image.load(avatarURL);
+      let avatar = await fetch(avatarURL).then(r => r.arrayBuffer()).then(r => decode(r, true));
+      if(avatar instanceof GIF)
+        avatar = avatar[0];
+
+      const font = await fetch('https://cdn.jsdelivr.net/npm/roboto-font@0.1.0/fonts/Roboto/roboto-regular-webfont.ttf').then(r => r.arrayBuffer()).then(r => new Uint8Array(r));
+
       const avgAvatarColor = avatar.averageColor();
-      const image = Image.new(1024, 256, avgAvatarColor);
+      const image = new Image(1024, 256);
+      image.fill(avgAvatarColor);
 
       image.lightness(0.75);
-      let border = Image.new(image.width, image.height);
+      let border = new Image(image.width, image.height);
 
       border.fill((x, y) => {
         const alpha = Math.max(
@@ -30,26 +41,26 @@ const joinLeaveImage = async (
       image.composite(avatar, image.width * 0.05, image.height / 8);
 
       const message = \`\${tag} just \${join ? 'joined' : 'left'}!\`;
-      const text = Image.renderText(1280 / message.length, avgAvatarColor > 0xaaaaaaff ? 0x000000ff : 0xffffffff, 'Roboto', message);
+      const text = await Image.renderText(font, 1280 / message.length, message, avgAvatarColor > 0xaaaaaaff ? 0x000000ff : 0xffffffff);
 
       image.composite(text, image.width * 0.1 + image.height * 0.75, image.height / 2 - text.height / 2);
       if(!join) image.saturation(0.25);
+
+      return image.encode();
     `;
 
-  const request = await fetch('https://fapi.wrmsr.io/image_script', {
+  const request = await fetch('https://api.pxlapi.dev/imagescript/1.2.5', {
     body: JSON.stringify({
-      args: {
-        text: code,
-        inject: {
-          tag: member.user.getTag(),
-          avatarURL: member.user.getAvatarUrl(),
-          join
-        }
+      code,
+      inject: {
+        tag: member.user.getTag(),
+        avatarURL: member.user.getAvatarUrl(),
+        join: type === Type.JOIN
       }
     }),
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${FAPI_TOKEN}`
+      Authorization: `Application ${PXLAPI_TOKEN}`
     },
     method: 'POST'
   });
@@ -59,7 +70,7 @@ const joinLeaveImage = async (
   channel.sendMessage({
     attachments: [
       {
-        name: join ? 'join.png' : 'leave.png',
+        name: type === Type.JOIN ? 'join.png' : 'leave.png',
         data: await request.arrayBuffer()
       }
     ]
@@ -67,9 +78,9 @@ const joinLeaveImage = async (
 };
 
 discord.on(discord.Event.GUILD_MEMBER_ADD, async (member) => {
-  await joinLeaveImage(true, member);
+  await joinLeaveImage(Type.JOIN, member);
 });
 
 discord.on(discord.Event.GUILD_MEMBER_REMOVE, async (member) => {
-  await joinLeaveImage(false, member);
+  await joinLeaveImage(Type.LEAVE, member);
 });
