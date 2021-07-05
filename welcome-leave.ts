@@ -17,7 +17,7 @@ const joinLeaveImage = async (
 
       const font = await fetch('https://cdn.jsdelivr.net/npm/roboto-font@0.1.0/fonts/Roboto/roboto-regular-webfont.ttf').then(r => r.arrayBuffer()).then(r => new Uint8Array(r));
 
-      const avgAvatarColor = avatar.averageColor();
+      const avgAvatarColor = avatar.dominantColor();
       const image = new Image(1024, 256);
       image.fill(avgAvatarColor);
 
